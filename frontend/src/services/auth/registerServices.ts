@@ -1,16 +1,15 @@
 import apiClient from '../api/api';
-import api from '../api/api';
 
 interface RegisterData {
   name: string;
   email: string;
   password: string;
-  confirm_password: string;
+  password_confirmation: string;
 }
 
 const registerService = {
   async register(userData: RegisterData) {
-    const response = await apiClient.post('/reister ', userData);
+    const response = await apiClient.post('/register ', userData);
     return response.data;
   },
 };

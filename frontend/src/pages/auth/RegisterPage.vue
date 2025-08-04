@@ -2,8 +2,7 @@
 import { ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
-
-const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'http://localhost:8000';
+import registerService from '../../services/auth/registerServices';
 const $q = useQuasar();
 const router = useRouter();
 const isLoading = ref(false);
@@ -21,49 +20,29 @@ async function onSubmit() {
   isLoading.value = true;
 
   try {
-    const response = await fetch(API_ENDPOINT + '/api/v1/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        name: name.value,
-        email: email.value,
-        password: password.value,
-      }),
-    });
+    const userData = {
+      name: name.value,
+      email: email.value,
+      password: password.value,
+      password_confirmation: confirmPassword.value,
+    };
 
-    if (response.ok) {
-      const data = await response.json();
-      $q.notify({
-        color: 'positive',
-        icon: 'check_circle',
-        message: data.message || 'Registrasi berhasil! Silakan login.',
-      });
-      void router.push('/auth/login');
-    } else {
-      let errorMessage = `Error ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.errors) {
-          errorMessage = Object.values(errorData.errors).flat().join(' ');
-        }
-      } catch (e) {
-        console.warn('Could not parse error response as JSON.');
-      }
-      $q.notify({
-        color: 'negative',
-        message: errorMessage,
-      });
-    }
-  } catch (error) {
-    console.error('Registration fetch error:', error);
+    const data = await registerService.register(userData);
+
+    $q.notify({
+      color: 'positive',
+      icon: 'check_circle',
+      message: data.message || 'Registrasi berhasil! Silakan login.',
+    });
+    void router.push('/auth/login');
+  } catch (error: any) {
+    console.error('Registration error:', error);
+
+    const errorMessage = error.response?.data?.message || 'Terjadi kesalahan saat registrasi.';
+
     $q.notify({
       color: 'negative',
-      message: 'Tidak dapat terhubung ke server. Periksa koneksi atau proxy.',
+      message: errorMessage,
     });
   } finally {
     isLoading.value = false;
@@ -100,7 +79,7 @@ async function onSubmit() {
               v-model="name"
               label="Nama Lengkap"
               lazy-rules
-              :rules="[(val) => !!val || 'Nama tidak boleh kosong']"
+              :rules="[(val: string) => !!val || 'Nama tidak boleh kosong']"
             />
             <q-input
               class="q-mt-md"
@@ -109,7 +88,7 @@ async function onSubmit() {
               label="Email"
               type="email"
               lazy-rules
-              :rules="[(val) => !!val || 'Email tidak boleh kosong']"
+              :rules="[(val: string) => !!val || 'Email tidak boleh kosong']"
             />
             <q-input
               class="q-mt-md"
@@ -118,7 +97,7 @@ async function onSubmit() {
               label="Password"
               type="password"
               lazy-rules
-              :rules="[(val) => (val && val.length > 5) || 'Password minimal 6 karakter']"
+              :rules="[(val: string) => (val && val.length > 5) || 'Password minimal 6 karakter']"
             />
             <q-input
               class="q-mt-md"
@@ -128,8 +107,8 @@ async function onSubmit() {
               type="password"
               lazy-rules
               :rules="[
-                (val) => !!val || 'Konfirmasi password tidak boleh kosong',
-                (val) => val === password || 'Password tidak cocok',
+                (val: string) => !!val || 'Konfirmasi password tidak boleh kosong',
+                (val: string) => val === password || 'Password tidak cocok',
               ]"
             />
           </q-card-section>

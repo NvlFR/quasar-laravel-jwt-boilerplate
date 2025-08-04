@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { useQuasar, QTableProps, QTableColumn } from 'quasar';
+import type { QTableProps, QTableColumn } from 'quasar';
+import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 
 // --- INTERFACE & TIPE DATA ---
@@ -114,7 +115,6 @@ const deleteItem = (row: ProductCategory) => {
   $q.dialog({
     title: 'Konfirmasi Hapus',
     message: `Apakah Anda yakin ingin menghapus kategori "${row.name}"?`,
-    cancel: true,
     persistent: true,
     ok: {
       label: 'Hapus',

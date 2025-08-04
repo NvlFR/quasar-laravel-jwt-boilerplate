@@ -2,8 +2,7 @@
 import { ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
-
-const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || 'http://localhost:8000';
+import loginService from '../../services/auth/loginServices';
 const $q = useQuasar();
 const router = useRouter();
 const isLoading = ref(false);
@@ -14,48 +13,33 @@ async function onSubmit() {
   isLoading.value = true;
 
   try {
-    const response = await fetch(API_ENDPOINT + '/api/v1/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        email: email.value,
-        password: password.value,
-      }),
+    const data = await loginService.login({
+      email: email.value,
+      password: password.value,
     });
 
-    const data = await response.json();
+    if (data.success && data.data.access_token) {
+      const { access_token, user } = data.data;
 
-    if (response.ok) {
-      const accessToken = data.data.access_token;
+      localStorage.setItem('auth_token', access_token);
+      localStorage.setItem('user_data', JSON.stringify(user));
 
-      if (accessToken) {
-        localStorage.setItem('auth_token', accessToken);
-
-        $q.notify({
-          color: 'positive',
-          icon: 'check_circle',
-          message: data.message || 'Login berhasil!',
-        });
-
-        void router.push('/admin/dashboard');
-      } else {
-        throw new Error('Respons login tidak mengandung access_token.');
-      }
-    } else {
-      const errorMessage = data.message || data.error || `Error: ${response.statusText}`; 
       $q.notify({
-        color: 'negative',
-        message: errorMessage,
+        color: 'positive',
+        icon: 'check_circle',
+        message: data.message || 'Login berhasil!',
       });
+
+      void router.push('/admin/dashboard');
+    } else {
+      throw new Error(data.message || 'Respons tidak valid.');
     }
   } catch (error: any) {
     console.error('Login error:', error);
+    const errorMessage = error.response?.data?.message || 'Email atau password salah.';
     $q.notify({
       color: 'negative',
-      message: 'Gagal terhubung ke server. Periksa koneksi internet Anda.',
+      message: errorMessage,
     });
   } finally {
     isLoading.value = false;
@@ -93,7 +77,7 @@ async function onSubmit() {
               label="Email"
               type="email"
               lazy-rules
-              :rules="[(val) => !!val || 'Email tidak boleh kosong']"
+              :rules="[(val: string) => !!val || 'Email tidak boleh kosong']"
             />
             <q-input
               class="q-mt-md"
@@ -102,7 +86,7 @@ async function onSubmit() {
               label="Password"
               type="password"
               lazy-rules
-              :rules="[(val) => !!val || 'Password tidak boleh kosong']"
+              :rules="[(val: string) => !!val || 'Password tidak boleh kosong']"
             />
           </q-card-section>
 
